@@ -1,0 +1,26 @@
+# Job de mise en place du modèle de données.
+# Idempotent : on peut le relancer autant de fois que nécessaire sans rien casser.
+
+resources:
+  jobs:
+    setup:
+      name: notes_frais_setup
+      description: Crée les tables, charge les référentiels et contrôle leur qualité.
+      max_concurrent_runs: 1
+      tags:
+        project: notes-frais
+
+      # Paramètres du JOB : transmis à toutes les tâches, où ils remplacent
+      # les valeurs par défaut des widgets (CREATE WIDGET … DEFAULT …).
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.notes_frais.name} # nom réel, préfixé en dev
+
+      tasks:
+        - task_key: create_tables
+          max_retries: 0 # une erreur de SQL ne se corrige pas en relançant
+          notebook_task:
+            notebook_path: ../src/setup/01_create_tables.sql
+        # Les tâches 2 et 3 seront ajoutées à l'étape suivante.
