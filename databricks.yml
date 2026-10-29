@@ -1,0 +1,23 @@
+# Définition du bundle « notes-frais ».
+# Chaque ressource (job, app…) vit dans son propre fichier sous resources/.
+bundle:
+  name: notes-frais
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalogue Unity Catalog
+    default: workspace
+  schema:
+    description: Schéma du projet (un par environnement)
+
+targets:
+  dev:
+    mode: development # préfixe « [dev redaadari] » et met les planifications en pause
+    default: true
+    workspace:
+      host: https://dbc-18ef0795-e41e.cloud.databricks.com
+    variables:
+      schema: notes_frais_dev

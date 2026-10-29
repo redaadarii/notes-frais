@@ -1,0 +1,18 @@
+# Dépendances et builds Node
+node_modules/
+.next/
+
+# Fichiers d'environnement : ils contiennent des secrets
+.env*
+!.env.example
+
+# État local de la CLI Databricks
+.databricks/
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+
+# macOS
+.DS_Store
