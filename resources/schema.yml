@@ -1,0 +1,21 @@
+# Contenants Unity Catalog du projet : le schéma et le volume des justificatifs.
+# Ils sont créés par « databricks bundle deploy », supprimés par « databricks bundle destroy ».
+
+resources:
+  schemas:
+    # « notes_frais » est la CLÉ de la ressource dans le bundle :
+    # c'est elle qu'on utilise pour y faire référence ailleurs.
+    notes_frais:
+      catalog_name: ${var.catalog}
+      name: notes_frais # en dev, le nom réel devient « dev_redaadari_notes_frais »
+      comment: Notes de frais — tables de l'application et référentiels
+
+  volumes:
+    receipts:
+      catalog_name: ${var.catalog}
+      # Référence à la ressource déclarée plus haut : on récupère son nom RÉEL (préfixé en dev).
+      # Le bundle comprend ainsi qu'il doit créer le schéma AVANT le volume.
+      schema_name: ${resources.schemas.notes_frais.name}
+      name: receipts
+      volume_type: MANAGED # stockage géré par Unity Catalog (pas de bucket à configurer)
+      comment: Justificatifs (PDF, images) déposés par l'application

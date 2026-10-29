@@ -1,23 +1,29 @@
-# Définition du bundle « notes-frais ».
-# Chaque ressource (job, app…) vit dans son propre fichier sous resources/.
+# Bundle « notes-frais » : point d'entrée de toute la configuration Databricks.
+# Ce fichier reste court : chaque ressource vit dans son propre fichier sous resources/.
+
 bundle:
   name: notes-frais
 
+# Tous les fichiers YAML du dossier resources/ font partie du bundle.
 include:
   - resources/*.yml
 
+# Variables : les valeurs qui changent d'un environnement à l'autre.
 variables:
   catalog:
-    description: Catalogue Unity Catalog
+    description: Catalogue Unity Catalog qui contient le schéma du projet
     default: workspace
-  schema:
-    description: Schéma du projet (un par environnement)
 
+# Environnements cibles. « dev » est utilisé quand on ne précise rien (-t dev).
 targets:
   dev:
-    mode: development # préfixe « [dev redaadari] » et met les planifications en pause
+    # Mode développement :
+    #  - préfixe les ressources avec « [dev redaadari] » (jobs) ou « dev_redaadari_ » (schémas)
+    #  - met en pause les planifications des jobs
+    #  - chaque développeur a ainsi sa propre copie, sans gêner les autres
+    mode: development
     default: true
     workspace:
       host: https://dbc-18ef0795-e41e.cloud.databricks.com
-    variables:
-      schema: notes_frais_dev
+
+  # La cible « prod » sera ajoutée en phase 7 (service principal, sans préfixe).
