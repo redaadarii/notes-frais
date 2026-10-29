@@ -23,4 +23,17 @@ resources:
           max_retries: 0 # une erreur de SQL ne se corrige pas en relançant
           notebook_task:
             notebook_path: ../src/setup/01_create_tables.sql
-        # Les tâches 2 et 3 seront ajoutées à l'étape suivante.
+
+        - task_key: load_reference_data
+          depends_on:
+            - task_key: create_tables # ne démarre que si les tables existent
+          max_retries: 0
+          notebook_task:
+            notebook_path: ../src/setup/02_load_reference_data.sql
+
+        - task_key: check_data_quality
+          depends_on:
+            - task_key: load_reference_data
+          max_retries: 0
+          notebook_task:
+            notebook_path: ../src/setup/03_check_data_quality.sql
