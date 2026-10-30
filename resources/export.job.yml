@@ -1,0 +1,51 @@
+# Job d'export comptable : produit un classeur Excel (openpyxl) des notes validées d'un mois,
+# puis les passe au statut EXPORTED. Lancé par la finance depuis l'application,
+# ou automatiquement le 1er de chaque mois pour le mois précédent.
+
+resources:
+  jobs:
+    export_accounting:
+      name: notes_frais_export_accounting
+      description: Exporte les notes validées d'une période vers un classeur Excel dans le volume exports.
+      max_concurrent_runs: 1 # deux exports simultanés de la même période produiraient des doublons
+      queue:
+        enabled: true
+      tags:
+        project: notes-frais
+
+      schedule:
+        quartz_cron_expression: "0 0 6 1 * ?" # le 1er du mois à 6 h
+        timezone_id: Europe/Paris
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.notes_frais.name}
+        - name: period
+          default: "" # vide = mois précédent (cas de la planification)
+        - name: requested_by
+          default: ""
+
+      environments:
+        - environment_key: export
+          spec:
+            environment_version: "2"
+            dependencies:
+              - openpyxl==3.1.5
+
+      tasks:
+        - task_key: export
+          environment_key: export
+          max_retries: 0 # un export ne se relance pas en aveugle : risque de doublon comptable
+          spark_python_task:
+            python_file: ../src/jobs/export_accounting/main.py
+            parameters:
+              - --catalog
+              - "{{job.parameters.catalog}}"
+              - --schema
+              - "{{job.parameters.schema}}"
+              - --period
+              - "{{job.parameters.period}}"
+              - --requested-by
+              - "{{job.parameters.requested_by}}"

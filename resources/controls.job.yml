@@ -1,0 +1,30 @@
+# Job de contrôle automatique des notes en cours de validation.
+# Déclenché par l'application à chaque soumission, et planifié toutes les heures en filet de sécurité
+# (la planification est mise en pause automatiquement en mode development).
+
+resources:
+  jobs:
+    controls:
+      name: notes_frais_controls
+      description: Recalcule les anomalies (plafonds, justificatifs, doublons, période) des notes en validation.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true # une soumission pendant un run est mise en file, pas perdue
+      tags:
+        project: notes-frais
+
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?" # toutes les heures
+        timezone_id: Europe/Paris
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${resources.schemas.notes_frais.name}
+
+      tasks:
+        - task_key: check_reports
+          max_retries: 1 # un échec transitoire du warehouse mérite une seconde chance
+          notebook_task:
+            notebook_path: ../src/jobs/controls/check_reports.sql

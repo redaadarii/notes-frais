@@ -19,3 +19,9 @@ resources:
       name: receipts
       volume_type: MANAGED # stockage géré par Unity Catalog (pas de bucket à configurer)
       comment: Justificatifs (PDF, images) déposés par l'application
+    exports:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.notes_frais.name}
+      name: exports
+      volume_type: MANAGED
+      comment: Fichiers d'export comptable (Excel) produits par le job export_accounting

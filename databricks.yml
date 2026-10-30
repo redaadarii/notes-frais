@@ -13,6 +13,10 @@ variables:
   catalog:
     description: Catalogue Unity Catalog qui contient le schéma du projet
     default: workspace
+  warehouse_id:
+    description: SQL Warehouse utilisé par l'application
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 # Environnements cibles. « dev » est utilisé quand on ne précise rien (-t dev).
 targets:

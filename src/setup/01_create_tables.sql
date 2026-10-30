@@ -2,7 +2,7 @@
 -- MAGIC %md
 -- MAGIC # 01 — Création des tables
 -- MAGIC
--- MAGIC Crée les 5 tables du modèle dans le schéma **déclaré par le bundle** (`resources/schema.yml`).
+-- MAGIC Crée les 6 tables du modèle dans le schéma **déclaré par le bundle** (`resources/schema.yml`).
 -- MAGIC Ce notebook ne crée ni le schéma ni le volume : c'est le rôle du bundle.
 -- MAGIC
 -- MAGIC **Idempotent** : `CREATE TABLE IF NOT EXISTS`, et chaque contrainte est supprimée puis recréée.
@@ -134,6 +134,28 @@ CREATE TABLE IF NOT EXISTS report_events (
   CONSTRAINT fk_events_report FOREIGN KEY (report_id) REFERENCES expense_reports (id)
 )
 COMMENT "Historique de chaque note : qui a fait quoi, quand (audit)";
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ## Résultats des contrôles automatiques
+-- MAGIC Table **recalculée** par le job `controls` : elle reflète toujours l'état courant des notes en validation.
+
+-- COMMAND ----------
+
+CREATE TABLE IF NOT EXISTS report_checks (
+  report_id  STRING    NOT NULL,
+  line_id    STRING             COMMENT "Ligne concernée ; NULL = anomalie qui porte sur toute la note",
+  rule       STRING    NOT NULL COMMENT "Voir la contrainte valid_rule",
+  detail     STRING    NOT NULL COMMENT "Message lisible par le valideur",
+  checked_at TIMESTAMP NOT NULL,
+  CONSTRAINT fk_checks_report FOREIGN KEY (report_id) REFERENCES expense_reports (id)
+)
+COMMENT "Anomalies détectées par le job de contrôle (plafonds, justificatifs, doublons, période)";
+
+ALTER TABLE report_checks DROP CONSTRAINT IF EXISTS valid_rule;
+ALTER TABLE report_checks ADD CONSTRAINT valid_rule
+  CHECK (rule IN ('OVER_LIMIT', 'MISSING_RECEIPT', 'DUPLICATE', 'OUT_OF_PERIOD'));
 
 -- COMMAND ----------
 

@@ -1,0 +1,100 @@
+# Application Next.js déployée sur Databricks Apps.
+#
+# Identité : l'utilisateur est authentifié par Databricks (SSO, fédéré avec Microsoft Entra ID)
+# AVANT d'atteindre l'app. Le proxy transmet son e-mail et un token à portée réduite ; les portées
+# par défaut (iam.current-user:read, iam.access-control:read) suffisent à lire ses groupes, donc ses rôles :
+# aucune « user_api_scopes » supplémentaire n'est demandée.
+#
+# Données : l'app lit et écrit avec SON service principal, qui reçoit ci-dessous
+# le strict nécessaire (moindre privilège), table par table.
+
+resources:
+  apps:
+    webapp:
+      name: notes-frais
+      description: Saisie, validation à deux niveaux et export comptable des notes de frais
+      source_code_path: ../webapp
+
+      config:
+        command: ["npm", "run", "start"]
+        env:
+          - name: DATABRICKS_WAREHOUSE_ID
+            value_from: sql-warehouse
+          - name: APP_CATALOG
+            value: ${var.catalog}
+          - name: APP_SCHEMA
+            value: ${resources.schemas.notes_frais.name}
+          - name: RECEIPTS_VOLUME_PATH
+            value_from: volume-receipts
+          - name: EXPORTS_VOLUME_PATH
+            value_from: volume-exports
+          - name: CONTROLS_JOB_ID
+            value_from: job-controls
+          - name: EXPORT_JOB_ID
+            value_from: job-export
+          # Groupes (synchronisés depuis Entra ID par SCIM) → rôles applicatifs
+          - name: GROUP_EMPLOYEES
+            value: notes-frais-employes
+          - name: GROUP_MANAGERS
+            value: notes-frais-managers
+          - name: GROUP_FINANCE
+            value: notes-frais-finance
+          - name: GROUP_ADMINS
+            value: notes-frais-admins
+
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+        - name: table-employees
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.employees
+            securable_type: TABLE
+            permission: SELECT # le référentiel vient d'Entra ID / du SIRH, l'app ne le modifie pas
+        - name: table-categories
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.categories
+            securable_type: TABLE
+            permission: MODIFY # écran d'administration des catégories
+        - name: table-expense-reports
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.expense_reports
+            securable_type: TABLE
+            permission: MODIFY
+        - name: table-expense-lines
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.expense_lines
+            securable_type: TABLE
+            permission: MODIFY
+        - name: table-report-events
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.report_events
+            securable_type: TABLE
+            permission: MODIFY
+        - name: table-report-checks
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.report_checks
+            securable_type: TABLE
+            permission: SELECT # écrite uniquement par le job controls
+
+        - name: volume-receipts
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.receipts
+            securable_type: VOLUME
+            permission: WRITE_VOLUME
+        - name: volume-exports
+          uc_securable:
+            securable_full_name: ${var.catalog}.${resources.schemas.notes_frais.name}.exports
+            securable_type: VOLUME
+            permission: READ_VOLUME # téléchargement des exports ; seul le job y écrit
+
+        - name: job-controls
+          job:
+            id: ${resources.jobs.controls.id}
+            permission: CAN_MANAGE_RUN
+        - name: job-export
+          job:
+            id: ${resources.jobs.export_accounting.id}
+            permission: CAN_MANAGE_RUN
